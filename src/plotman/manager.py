@@ -91,10 +91,21 @@ def maybe_start_new_plot(dir_cfg, sched_cfg, plotting_cfg):
             # Plot to oldest tmpdir.
             tmpdir = max(rankable, key=operator.itemgetter(1))[0]
 
+            # exclude full dir
+            least_disk_free = 103 * 1024 * 1024 * 1024
+
             # Select the dst dir least recently selected
-            dir2ph = { d:ph for (d, ph) in dstdirs_to_youngest_phase(jobs).items()
+            items = dstdirs_to_youngest_phase(jobs).items()
+            dir2ph = { d:ph for (d, ph) in items
                       if d in dir_cfg.dst }
-            unused_dirs = [d for d in dir_cfg.dst if d not in dir2ph.keys()]
+            unused_dirs = [d for d in dir_cfg.dst if d not in dir2ph.keys() and psutil.disk_usage(d).free > least_disk_free ]
+            dir2ph = { d:ph for (d, ph) in items
+                      if d in dir_cfg.dst and psutil.disk_usage(d).free > least_disk_free + len([j for j in jobs if j.dstdir == d]) * least_disk_free }
+
+            # return if not valid dir
+            if len(unused_dirs) == 0 and len(dir2ph) == 0:
+                return (False, 'no valid dir because of disk usage')
+
             dstdir = ''
             if unused_dirs: 
                 dstdir = random.choice(unused_dirs)
