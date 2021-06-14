@@ -19,9 +19,23 @@ def analyze(logfilenames, clipterminals, bytmp, bybitfield):
             n_uniform = 0
             is_first_last = False
 
+            plotter = None
+
             # Read the logfile, triggering various behaviors on various
             # regex matches.
             for line in f:
+                # check plotter
+                if not plotter:
+                    m = re.search('^Multi-threaded pipelined Chia k32 plotter')
+                    if m:
+                        plotter = 'madmax'
+                
+                if plotter == 'madmax':
+                    # not support now
+                    return
+                    # next line
+                    continue
+
                 # Beginning of plot job.  We may encounter this multiple
                 # times, if a job was run with -n > 1.  Sample log line:
                 # 2021-04-08T13:33:43.542  chia.plotting.create_plots       : INFO     Starting plot 1/5
