@@ -118,6 +118,10 @@ def maybe_start_new_plot(dir_cfg, sched_cfg, plotting_cfg):
                 dstdir = random.choice(unused_dirs)
             else:
                 dstdir = max(dir2ph, key=dir2ph.get)
+               
+            # set tmp as dst if avaliable
+            if tmpdir in unused_dirs or tmpdir in dir2ph:
+                dstdir = tmpdir
 
             logfile = os.path.join(
                 dir_cfg.log, datetime.now().strftime('%Y-%m-%d-%H:%M:%S.log')
