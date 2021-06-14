@@ -244,7 +244,7 @@ class Job:
                     if m:
                         phase = int(m.group(1))
                         # init as 
-                        if not phase_subphases[phase]:
+                        if phase not in phase_subphases:
                             phase_subphases[phase] = 0
 
                         table = int(m.group(3))
