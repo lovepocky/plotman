@@ -31,6 +31,8 @@ def is_plotting_cmdline(cmdline):
         and cmdline[1].endswith('/chia')
         and 'plots' == cmdline[2]
         and 'create' == cmdline[3]
+    ) or (
+        'chia_plot' == cmdline[0]
     )
 
 # This is a cmdline argument fix for https://github.com/ericaltendorf/plotman/issues/41
@@ -57,6 +59,9 @@ def parse_chia_plot_time(s):
 class Job:
     'Represents a plotter job'
 
+    # support other plotter
+    plotter = None
+
     # These are constants, not updated during a run.
     k = 0
     r = 0
@@ -70,7 +75,7 @@ class Job:
     jobfile = ''
     job_id = 0
     plot_id = '--------'
-    proc = None   # will get a psutil.Process
+    proc: psutil.Process = None   # will get a psutil.Process
     help = False
 
     # These are dynamic, cached, and need to be udpated periodically
@@ -104,12 +109,18 @@ class Job:
 
         with self.proc.oneshot():
             # Parse command line args
+
+            # determind which plotter
             args = self.proc.cmdline()
-            assert len(args) > 4
-            assert 'python' in args[0]
-            assert 'chia' in args[1]
-            assert 'plots' == args[2]
-            assert 'create' == args[3]
+            if 'chia_plot' == args[0]:
+                self.plotter = 'madmax'
+            else:
+                assert len(args) > 4
+                assert 'python' in args[0]
+                assert 'chia' in args[1]
+                assert 'plots' == args[2]
+                assert 'create' == args[3]
+
             args_iter = iter(cmdline_argfix(args[4:]))
             for arg in args_iter:
                 val = None if arg in {'-e', '--nobitfield', '-h', '--help', '--override-k'} else next(args_iter)
@@ -171,16 +182,26 @@ class Job:
         for attempt_number in range(3):
             with open(self.logfile, 'r') as f:
                 for line in f:
-                    m = re.match('^ID: ([0-9a-f]*)', line)
-                    if m:
-                        self.plot_id = m.group(1)
-                        found_id = True
-                    m = re.match(r'^Starting phase 1/4:.*\.\.\. (.*)', line)
-                    if m:
-                        # Mon Nov  2 08:39:53 2020
-                        self.start_time = parse_chia_plot_time(m.group(1))
-                        found_log = True
-                        break  # Stop reading lines in file
+                    if self.plotter == 'madmax':
+                        m = re.match('^Plot Name: ([a-z0-9]+-)+([a-z0-9]+)', line)
+                        if m:
+                            self.plot_id = m.group(2)
+                            found_id = True
+                            # use process start time
+                            self.start_time = datetime.fromtimestamp(self.proc.create_time()*1000) 
+                            found_log = True
+                            break
+                    else:
+                        m = re.match('^ID: ([0-9a-f]*)', line)
+                        if m:
+                            self.plot_id = m.group(1)
+                            found_id = True
+                        m = re.match(r'^Starting phase 1/4:.*\.\.\. (.*)', line)
+                        if m:
+                            # Mon Nov  2 08:39:53 2020
+                            self.start_time = parse_chia_plot_time(m.group(1))
+                            found_log = True
+                            break  # Stop reading lines in file
 
             if found_id and found_log:
                 break  # Stop trying
@@ -212,38 +233,41 @@ class Job:
 
         with open(self.logfile, 'r') as f:
             for line in f:
-                # "Starting phase 1/4: Forward Propagation into tmp files... Sat Oct 31 11:27:04 2020"
-                m = re.match(r'^Starting phase (\d).*', line)
-                if m:
-                    phase = int(m.group(1))
-                    phase_subphases[phase] = 0
+                if self.plotter == 'madmax':
+                    pass
+                else:
+                    # "Starting phase 1/4: Forward Propagation into tmp files... Sat Oct 31 11:27:04 2020"
+                    m = re.match(r'^Starting phase (\d).*', line)
+                    if m:
+                        phase = int(m.group(1))
+                        phase_subphases[phase] = 0
 
-                # Phase 1: "Computing table 2"
-                m = re.match(r'^Computing table (\d).*', line)
-                if m:
-                    phase_subphases[1] = max(phase_subphases[1], int(m.group(1)))
+                    # Phase 1: "Computing table 2"
+                    m = re.match(r'^Computing table (\d).*', line)
+                    if m:
+                        phase_subphases[1] = max(phase_subphases[1], int(m.group(1)))
 
-                # Phase 2: "Backpropagating on table 2"
-                m = re.match(r'^Backpropagating on table (\d).*', line)
-                if m:
-                    phase_subphases[2] = max(phase_subphases[2], 7 - int(m.group(1)))
+                    # Phase 2: "Backpropagating on table 2"
+                    m = re.match(r'^Backpropagating on table (\d).*', line)
+                    if m:
+                        phase_subphases[2] = max(phase_subphases[2], 7 - int(m.group(1)))
 
-                # Phase 3: "Compressing tables 4 and 5"
-                m = re.match(r'^Compressing tables (\d) and (\d).*', line)
-                if m:
-                    phase_subphases[3] = max(phase_subphases[3], int(m.group(1)))
+                    # Phase 3: "Compressing tables 4 and 5"
+                    m = re.match(r'^Compressing tables (\d) and (\d).*', line)
+                    if m:
+                        phase_subphases[3] = max(phase_subphases[3], int(m.group(1)))
 
-                # TODO also collect timing info:
+                    # TODO also collect timing info:
 
-                # "Time for phase 1 = 22796.7 seconds. CPU (98%) Tue Sep 29 17:57:19 2020"
-                # for phase in ['1', '2', '3', '4']:
-                    # m = re.match(r'^Time for phase ' + phase + ' = (\d+.\d+) seconds..*', line)
-                        # data.setdefault....
+                    # "Time for phase 1 = 22796.7 seconds. CPU (98%) Tue Sep 29 17:57:19 2020"
+                    # for phase in ['1', '2', '3', '4']:
+                        # m = re.match(r'^Time for phase ' + phase + ' = (\d+.\d+) seconds..*', line)
+                            # data.setdefault....
 
-                # Total time = 49487.1 seconds. CPU (97.26%) Wed Sep 30 01:22:10 2020
-                # m = re.match(r'^Total time = (\d+.\d+) seconds.*', line)
-                # if m:
-                    # data.setdefault(key, {}).setdefault('total time', []).append(float(m.group(1)))
+                    # Total time = 49487.1 seconds. CPU (97.26%) Wed Sep 30 01:22:10 2020
+                    # m = re.match(r'^Total time = (\d+.\d+) seconds.*', line)
+                    # if m:
+                        # data.setdefault(key, {}).setdefault('total time', []).append(float(m.group(1)))
 
         if phase_subphases:
             phase = max(phase_subphases.keys())
