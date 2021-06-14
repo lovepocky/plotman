@@ -31,8 +31,21 @@ def analyze(logfilenames, clipterminals, bytmp, bybitfield):
                         plotter = 'madmax'
                 
                 if plotter == 'madmax':
-                    # not support now
-                    # next line
+                    # TODO tmpdir
+                    for phase in ['1', '2', '3', '4']:
+                        # Phase 4 took 92.07 sec, xxxx
+                        m = re.search(r'^Phase ' +phase+ ' took (\d+.\d+) sec.*', line)
+                        if m:
+                            phase_time[phase] = float(m.group(1))
+
+                    m = re.search(r'^Total plot creation time was (\d+.\d+) sec.*', line)
+                    if m:
+                        data.setdefault(sl, {}).setdefault('total time', []).append(float(m.group(1)))
+                        for phase in ['1', '2', '3', '4']:
+                            data.setdefault(sl, {}).setdefault('phase ' + phase, []).append(phase_time[phase])
+                        data.setdefault(sl, {}).setdefault('%usort', []).append(100 * n_uniform // n_sorts)
+
+                    # next line, skip default analyze
                     continue
 
                 # Beginning of plot job.  We may encounter this multiple
