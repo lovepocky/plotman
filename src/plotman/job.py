@@ -115,14 +115,16 @@ class Job:
             args = self.proc.cmdline()
             if 'chia_plot' == args[0]:
                 self.plotter = 'madmax'
+                args_start_idx = 1
             else:
                 assert len(args) > 4
                 assert 'python' in args[0]
                 assert 'chia' in args[1]
                 assert 'plots' == args[2]
                 assert 'create' == args[3]
+                args_start_idx = 4
 
-            args_iter = iter(cmdline_argfix(args[4:]))
+            args_iter = iter(cmdline_argfix(args[args_start_idx:]))
             for arg in args_iter:
                 val = None if arg in {'-e', '--nobitfield', '-h', '--help', '--override-k'} else next(args_iter)
                 if arg in {'-k', '--size'}:
