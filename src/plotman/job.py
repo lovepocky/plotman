@@ -32,7 +32,8 @@ def is_plotting_cmdline(cmdline):
         and 'plots' == cmdline[2]
         and 'create' == cmdline[3]
     ) or (
-        'chia_plot' == cmdline[0]
+        len(cmdline) >= 1
+        and 'chia_plot' == cmdline[0]
     )
 
 # This is a cmdline argument fix for https://github.com/ericaltendorf/plotman/issues/41
