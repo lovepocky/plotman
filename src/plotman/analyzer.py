@@ -32,7 +32,6 @@ def analyze(logfilenames, clipterminals, bytmp, bybitfield):
                 
                 if plotter == 'madmax':
                     # not support now
-                    return
                     # next line
                     continue
 
