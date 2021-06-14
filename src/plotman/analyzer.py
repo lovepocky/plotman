@@ -26,7 +26,7 @@ def analyze(logfilenames, clipterminals, bytmp, bybitfield):
             for line in f:
                 # check plotter
                 if not plotter:
-                    m = re.search('^Multi-threaded pipelined Chia k32 plotter')
+                    m = re.search(r'^Multi-threaded pipelined Chia k32 plotter', line)
                     if m:
                         plotter = 'madmax'
                 
