@@ -43,7 +43,7 @@ def analyze(logfilenames, clipterminals, bytmp, bybitfield):
                         data.setdefault(sl, {}).setdefault('total time', []).append(float(m.group(1)))
                         for phase in ['1', '2', '3', '4']:
                             data.setdefault(sl, {}).setdefault('phase ' + phase, []).append(phase_time[phase])
-                        data.setdefault(sl, {}).setdefault('%usort', []).append(100 * n_uniform // n_sorts)
+                        data.setdefault(sl, {}).setdefault('%usort', []).append(100)
 
                     # next line, skip default analyze
                     continue
