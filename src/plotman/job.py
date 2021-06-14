@@ -191,7 +191,7 @@ class Job:
                             self.plot_id = m.group(2)
                             found_id = True
                             # use process start time
-                            self.start_time = datetime.fromtimestamp(self.proc.create_time()*1000) 
+                            self.start_time = datetime.fromtimestamp(self.proc.create_time()) 
                             found_log = True
                             break
                     else:
@@ -237,7 +237,23 @@ class Job:
         with open(self.logfile, 'r') as f:
             for line in f:
                 if self.plotter == 'madmax':
-                    pass
+                    # [P1] Table 7 took 241.468 sec, found 4294819529 matches
+                    # [P2] Table 7 scan took 22.0274 sec
+                    # [P3-1] Table 2 took 68.6474 sec, wrote 3429422000 right entries
+                    m = re.match(r'^\[P(\d)(-1)?\] Table (\d) .*', line)
+                    if m:
+                        phase = int(m.group(1))
+                        # init as 
+                        if not phase_subphases[phase]:
+                            phase_subphases[phase] = 0
+
+                        table = int(m.group(3))
+                        phase_subphases[phase] = max(phase_subphases[phase], table)
+
+                    # [P4] Starting to write C1 and C3 tables
+                    m = re.match(r'\[P4\] Starting to write C1 and C3 tables', line)
+                    if m:
+                        phase_subphases[4] = 0
                 else:
                     # "Starting phase 1/4: Forward Propagation into tmp files... Sat Oct 31 11:27:04 2020"
                     m = re.match(r'^Starting phase (\d).*', line)
