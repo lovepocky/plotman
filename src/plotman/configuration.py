@@ -54,11 +54,17 @@ class TmpOverrides:
 @dataclass
 class Directories:
     log: str
-    tmp: List[str]
-    dst: List[str]
+    tmp: Optional[List[str]]
+    dst: Optional[List[str]]
     tmp2: Optional[str] = None
     tmp_overrides: Optional[Dict[str, TmpOverrides]] = None
     archive: Optional[Archive] = None
+
+    def __post_init__(self):
+        if not self.tmp:
+            self.tmp = []
+        if not self.dst:
+            self.dst = []
 
 @dataclass
 class Scheduling:
