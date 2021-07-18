@@ -145,7 +145,7 @@ class Job:
                     self.n = val
                 elif arg in {'-h', '--help'}:
                     self.help = True
-                elif arg in {'-e', '--nobitfield', '-f', '--farmer_public_key', '-p', '--pool_public_key'}:
+                elif arg in {'-c', '-e', '--nobitfield', '-f', '--farmer_public_key', '-p', '--pool_public_key'}:
                     pass
                     # TODO: keep track of these
                 elif arg == '--override-k':
