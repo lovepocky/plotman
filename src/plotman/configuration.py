@@ -85,6 +85,9 @@ class Plotting:
     job_buffer: int
     farmer_pk: Optional[str] = None
     pool_pk: Optional[str] = None
+    # Pool Contract Address (62 chars)
+    contract: Optional[str] = None
+
     # none as offical / madmax
     plotter: Optional[str] = None
 
